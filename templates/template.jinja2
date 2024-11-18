@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ObjectSet ExportMode="Special" Note="TypesFirst" SemanticsFilter="Special" Version="{{ serverVersion }}">
+  <MetaInformation>
+    <ExportMode Value="Special"/>
+    <SemanticsFilter Value="None"/>
+    <RuntimeVersion Value="{{ serverVersion }}"/>
+    <SourceVersion Value="{{ serverVersion }}"/>
+    <ServerFullPath Value="/Server 1"/>
+  </MetaInformation>
+<ExportedObjects>
+  <OI NAME="Chart" TYPE="system.base.Folder">
+    <OI NAME="Analog Group" TYPE="system.base.Folder">
+     	{% for item in trendNameAnalog %}
+    	<OI NAME="{{ item.name }}" TYPE="trend.view.GraphicalTrendView">
+           <PI Name="DisplayStartTime" Value="Tx0626caa8183a8a18"/>
+           <PI Name="YAxisMaximum1" Value="0.10000000000000001"/>
+           <PI Name="YAxisMaximum2" Value="0.10000000000000001"/>
+           <OI NAME="TREND Series" TYPE="trend.view.TrendLogSeriesProperties" hidden="1">
+              <PI Name="Color" Value="{{ item.displayColor }}"/>
+              <PI Name="CustomCalculationPeriodStart" Value="Tx0626c2878dec0018"/>
+              <PI Name="DisplayLog">
+                 <Reference DeltaFilter="0" Object="{{ trendPathAnalog }}/{{ item.name }}" Retransmit="0" TransferRate="10"/>
+              </PI>
+	      {% if item.displayType > 0 %}
+              <PI Name="DisplayType" Value="{{ item.displayType  }}"/>
+	      {% endif %}
+           </OI>
+        </OI>
+	{% endfor %}
+    </OI>
+    <OI NAME="Binary Group" TYPE="system.base.Folder">
+      {% for item in trendNameBinary %}
+      <OI NAME="{{ item.name }}" TYPE="trend.view.GraphicalTrendView">
+        <PI Name="DisplayStartTime" Value="Tx0626caa8183a8a18"/>
+        <PI Name="YAxisMaximum1" Value="0.10000000000000001"/>
+        <PI Name="YAxisMaximum2" Value="0.10000000000000001"/>
+        <OI NAME="TREND Series" TYPE="trend.view.TrendLogSeriesProperties" hidden="1">
+          <PI Name="Color" Value="{{ item.displayColor }}"/>
+          <PI Name="CustomCalculationPeriodStart" Value="Tx0626c2878dec0018"/>
+          <PI Name="DisplayLog">
+            <Reference DeltaFilter="0" Object="{{ trendPathBinary }}/{{ item.name }}" Retransmit="0" TransferRate="10"/>
+          </PI>
+          {% if item.displayType > 0 %}
+	  			<PI Name="DisplayType" Value="{{ item.displayType  }}"/>
+	  	  {% endif %}
+        </OI>
+      </OI>
+      {% endfor %}
+     </OI>
+  </OI>
+</ExportedObjects>
+
+</ObjectSet>
