@@ -20,10 +20,6 @@ Once you’ve filled out all the details, you can proceed to configure the displ
 
 ![image](https://github.com/user-attachments/assets/82d52285-e68d-40b3-8c2b-3a7bf7847581)
 
-### Customize the style and color:
-
-![image](https://github.com/user-attachments/assets/49f6912a-510a-4384-ba85-69290a7e958c)
-
 When you're done, simply click "Build," and the generated file will appear in your `./output` folder.
 
 Once you import the file into EBO, you should see something like this:
