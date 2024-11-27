@@ -149,6 +149,8 @@ class MyWidget(QWidget):
         self.setWindowTitle("Chart Builder")
         self.setWindowIcon(QIcon("./static/favicon.ico"))
 
+        self.existing_file_container = QHBoxLayout()
+
         self.existing_file_label = QLabel("Use Existing File:")
         self.existing_file_button = QPushButton('Search for Files')
         self.existing_file_button.clicked.connect(self.search_files)
@@ -158,7 +160,12 @@ class MyWidget(QWidget):
 
         self.process_existing_file = QPushButton('Use this file')
         self.process_existing_file.clicked.connect(self.insert_information)
-
+        
+        self.existing_file_container.addWidget(self.existing_file_label)
+        self.existing_file_container.addWidget(self.existing_file_button)
+        self.existing_file_container.addWidget(self.result_display)
+        self.existing_file_container.addWidget(self.process_existing_file)
+        
         self.name_label = QLabel("New File's name:")
         self.name_edit = QLineEdit(datetime.now().strftime("%d-%m-%Y-%H-%M-%S"))
 
@@ -195,12 +202,14 @@ class MyWidget(QWidget):
         self.select_display_type_button_binary.clicked.connect(lambda _ : self.show_display_type_popup_binary())
         
         layout = QVBoxLayout()
-        
+        '''        
         layout.addWidget(self.existing_file_label)
         layout.addWidget(self.existing_file_button)
         layout.addWidget(self.result_display)
         layout.addWidget(self.process_existing_file)
-
+        '''
+        layout.addLayout(self.existing_file_container) 
+        
         layout.addWidget(self.name_label)
         layout.addWidget(self.name_edit)
         layout.addWidget(self.version_label)
