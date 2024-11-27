@@ -18,7 +18,7 @@ You can download the .exe version or build it yourself—whichever you prefer. T
 
 Once you’ve filled out all the details, you can proceed to configure the display settings for each trend:
 
-![image](https://github.com/user-attachments/assets/fcd7c70d-6de9-4b16-be55-8983b3ee9087)
+![image](https://github.com/user-attachments/assets/82d52285-e68d-40b3-8c2b-3a7bf7847581)
 
 ### Customize the style and color:
 
