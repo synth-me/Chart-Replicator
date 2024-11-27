@@ -4,11 +4,13 @@ import jinja2
 from datetime import datetime
 from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QComboBox, 
                              QTextEdit, QVBoxLayout, QPushButton, QMessageBox, 
-                             QHBoxLayout, QRadioButton, QDialog, QButtonGroup, QScrollArea)
+                             QHBoxLayout, QRadioButton, QDialog, QButtonGroup, QScrollArea,  QFileDialog)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from vcolorpicker import getColor, useLightTheme
 from PyQt5.QtGui import QColor
+import xml.etree.ElementTree as ET
+import re
 
 useLightTheme(True)
 
@@ -126,6 +128,7 @@ class MyWidget(QWidget):
         super().__init__()
 
         self.context = {
+            "serverPath":"",
             "serverVersion": "",
             "trendPathBinary":"",
             "trendPathAnalog":"",
@@ -133,16 +136,37 @@ class MyWidget(QWidget):
             "trendNameBinary": []
         }
 
+        self.result = {
+            "RuntimeVersion": None,
+            "ServerFullPath": None,
+            "Path Analog":None,
+            "Path Binary":None,
+            "Trends": None
+        }
+
         self.name = ""
 
         self.setWindowTitle("Chart Builder")
         self.setWindowIcon(QIcon("./static/favicon.ico"))
 
-        self.name_label = QLabel("File's name:")
+        self.existing_file_label = QLabel("Use Existing File:")
+        self.existing_file_button = QPushButton('Search for Files')
+        self.existing_file_button.clicked.connect(self.search_files)
+
+        self.result_display = QLineEdit(self)
+        self.result_display.setReadOnly(True)
+
+        self.process_existing_file = QPushButton('Use this file')
+        self.process_existing_file.clicked.connect(self.insert_information)
+
+        self.name_label = QLabel("New File's name:")
         self.name_edit = QLineEdit(datetime.now().strftime("%d-%m-%Y-%H-%M-%S"))
 
         self.version_label = QLabel("EBO Version:")
         self.version_edit = QLineEdit("5.0.3.117")
+
+        self.server_path = QLabel("Server Path:")
+        self.server_path_edit = QLineEdit("/Server 1")
 
         self.display_type_label = QLabel("Display Type:")
         self.display_type_combo = QComboBox()
@@ -150,8 +174,6 @@ class MyWidget(QWidget):
 
         self.select_display_type_button_analog = QPushButton("Config Display Type for Analog")
         self.select_display_type_button_binary = QPushButton("Config Display Type for Binary")
-
-        self.trend_path_analog = QLineEdit()
 
         self.trend_path_label_analog = QLabel("Analog Trends Path:")
         self.trend_path_analog = QLineEdit("../../../../Trend/Analog Group")
@@ -173,10 +195,18 @@ class MyWidget(QWidget):
         self.select_display_type_button_binary.clicked.connect(self.show_display_type_popup_binary)
         
         layout = QVBoxLayout()
+        
+        layout.addWidget(self.existing_file_label)
+        layout.addWidget(self.existing_file_button)
+        layout.addWidget(self.result_display)
+        layout.addWidget(self.process_existing_file)
+
         layout.addWidget(self.name_label)
         layout.addWidget(self.name_edit)
         layout.addWidget(self.version_label)
         layout.addWidget(self.version_edit)
+        layout.addWidget(self.server_path)
+        layout.addWidget(self.server_path_edit)
 
         self.label_box = QHBoxLayout()
         self.label_box.addWidget(self.trend_names_label_analog)
@@ -219,26 +249,137 @@ class MyWidget(QWidget):
         layout.addWidget(self.footnote_label)
 
         self.setLayout(layout)
+
+    def parse_xml_file(self) -> dict:
     
-    def show_display_type_popup_analog(self):
+        try:
+            # Parse the XML file
+            tree = ET.parse(self.result_display.text())
+            root = tree.getroot()
+
+            # Extract RuntimeVersion and ServerFullPath from MetaInformation
+            meta_info = root.find('MetaInformation')
+            if meta_info is not None:
+                runtime_version = meta_info.find(".//RuntimeVersion")
+                if runtime_version is not None:
+                    self.result["RuntimeVersion"] = runtime_version.attrib.get('Value')
+
+                server_full_path = meta_info.find(".//ServerFullPath")
+                if server_full_path is not None:
+                    self.result["ServerFullPath"] = server_full_path.attrib.get('Value')
+
+            # Flags to check if we've already found a reference for Analog and Binary groups
+            analog_reference_found = False
+            binary_reference_found = False
+            pattern = r"^(Binary Group|Analog Group)$"
+
+            # Extract top-level "Trend" OI and its sub-OIs
+            exported_objects = root.find('ExportedObjects')
+            if exported_objects is not None:
+                trend_group = exported_objects.find(".//OI[@NAME='Trend']")
+                if trend_group is not None:
+                    trend_groups = {"Binary Group":[], "Analog Group":[]}
+
+                    # Extract sub-OIs under "Trend"
+                    for sub_oi in trend_group.findall(".//OI"):
+                        group_name = sub_oi.attrib.get('NAME')
+                        if re.match(pattern,group_name):
+                            for t_oi in sub_oi.findall(".//OI"):
+                                sub_oi_name = t_oi.attrib.get('NAME')
+                                reference_object = t_oi.find(".//Reference")
+
+                                parse_path = lambda s: s.replace("Data", "Trend").rsplit('/', 1)[0]
+
+                                if group_name == "Analog Group" and not analog_reference_found:
+                                    analog_reference_found = reference_object.attrib.get('Object')     
+                                    self.result["Path Analog"] = parse_path(analog_reference_found)                             
+                                elif group_name == "Binary Group" and not binary_reference_found:
+                                    binary_reference_found = reference_object.attrib.get('Object')
+                                    self.result["Path Binary"] = parse_path(binary_reference_found)  
+                                    
+                                trend_groups[group_name].append(sub_oi_name)
+
+                    self.result["Trends"] = trend_groups
+
+            return self.result
+        except ET.ParseError as e:
+            return {}
+        except FileNotFoundError:
+            return {}
+
+    def insert_information(self):        
+
+        result = self.parse_xml_file()
+
+        if self.result and result:
+            buffer_analog_path = self.result["Path Analog"] 
+            buffer_binary_path = self.result["Path Binary"]
+            buffer_version     = self.result["RuntimeVersion"] 
+            buffer_server      = self.result["ServerFullPath"] 
+
+            self.version_edit.setText(buffer_version)
+            self.trend_path_analog.setText(buffer_analog_path) 
+            self.trend_path_binary.setText(buffer_binary_path)
+            self.server_path_edit.setText(buffer_server)
+
+            self.trend_names_edit_analog.clear() 
+            self.trend_names_edit_binary.clear() 
+
+            for trend_name in self.result["Trends"]["Binary Group"]:
+                self.trend_names_edit_binary.append(trend_name.strip())   
+
+            for trend_name in self.result["Trends"]["Analog Group"]:
+                self.trend_names_edit_analog.append(trend_name.strip())
+
+        else:
+            QMessageBox.information(self, "Um problema ocorreu", "O arquivo não é compativel ou não foi escolhido")
+
+        return None 
+
+    def search_files(self):
+        # Open a file dialog to select a directory
+        files, _ = QFileDialog.getOpenFileNames(self, 'Select Files')
+
+        if files:
+            # Display the selected files
+            self.result_display.clear()
+            self.result_display.setText(files[0])
+        else:
+            self.result_display.setText("No files selected.")
+    
+    def show_display_type_popup_analog(self, mode= True):
         trend_names = self.trend_names_edit_analog.toPlainText().split("\n")
         trend_names = [name for name in trend_names if name]  # Filter empty lines
-        popup = DisplayTypePopup(trend_names, {"Line": 0, "Discrete Line": 1, "Digital": 2, "Bars": 3}, self)
-        if popup.exec_() == QDialog.Accepted:
-            selected_types, selected_colors = popup.get_selected_display_types()
+
+        if mode:
+            popup = DisplayTypePopup(trend_names, {"Line": 0, "Discrete Line": 1, "Digital": 2, "Bars": 3}, self)
+            if popup.exec_() == QDialog.Accepted:
+                selected_types, selected_colors = popup.get_selected_display_types()
+                self.context["trendNameAnalog"] = [
+                    {"name": trend_names[i].strip(), "displayType": selected_types[i], "displayColor":selected_colors[i]} for i in range(len(trend_names))
+                ]
+        else:
             self.context["trendNameAnalog"] = [
-                {"name": trend_names[i].strip(), "displayType": selected_types[i], "displayColor":selected_colors[i]} for i in range(len(trend_names))
+                {"name": trend_names[i].strip(), "displayType": 0, "displayColor":"-11179217"} for i in range(len(trend_names))
             ]
 
-    def show_display_type_popup_binary(self):
+    def show_display_type_popup_binary(self, mode= True):
         trend_names = self.trend_names_edit_binary.toPlainText().split("\n")
         trend_names = [name for name in trend_names if name]  # Filter empty lines
-        popup = DisplayTypePopup(trend_names, {"Line": 0, "Discrete Line": 1, "Digital": 2, "Bars": 3}, self)
-        if popup.exec_() == QDialog.Accepted:
-            selected_types, selected_colors = popup.get_selected_display_types()
+        
+        if mode:
+            popup = DisplayTypePopup(trend_names, {"Line": 0, "Discrete Line": 1, "Digital": 2, "Bars": 3}, self)
+            if popup.exec_() == QDialog.Accepted:
+                selected_types, selected_colors = popup.get_selected_display_types()
+                self.context["trendNameBinary"] = [
+                    {"name": trend_names[i].strip(), "displayType": selected_types[i], "displayColor":selected_colors[i]} for i in range(len(trend_names))
+                ]
+        else:
             self.context["trendNameBinary"] = [
-                {"name": trend_names[i].strip(), "displayType": selected_types[i], "displayColor":selected_colors[i]} for i in range(len(trend_names))
+                {"name": trend_names[i].strip(), "displayType": 0, "displayColor":"-11179217"} for i in range(len(trend_names))
             ]
+
+
     
     def format_xml(self) -> tuple[bool,str]:
         try:
@@ -258,12 +399,18 @@ class MyWidget(QWidget):
             return False, f"ERROR: {str(e)}"
 
     def print_values(self):
+        
+        self.show_display_type_popup_analog(False)
+        self.show_display_type_popup_binary(False)
+
         self.context["serverVersion"] = self.version_edit.text().strip()
         self.context["trendPathBinary"] = self.trend_path_binary.text().strip()
         self.context["trendPathAnalog"] = self.trend_path_analog.text().strip()
+        self.context["serverPath"] = self.server_path_edit.text().strip()
+
         self.name = self.name_edit.text().strip()
 
-        status, log = self.format_xml()
+        _, log = self.format_xml()
         QMessageBox.information(self, "Operation Finished", log)
 
 if __name__ == '__main__':
