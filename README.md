@@ -6,7 +6,8 @@ If you're using EBO BMS software, you’re probably familiar with the tedious pr
 
 You can download the .exe version or build it yourself—whichever you prefer. The setup process is straightforward, and the steps are outlined below:
 
-![image](https://github.com/user-attachments/assets/78b20971-cf75-4129-93ae-82ca5e569d56)
+![image](https://github.com/user-attachments/assets/06b391c7-a4fc-4338-a709-5a70bc3c5372)
+
 
 ### Here’s what you’ll need to provide:
 
