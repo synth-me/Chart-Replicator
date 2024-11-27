@@ -4,7 +4,7 @@ import jinja2
 from datetime import datetime
 from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QComboBox, 
                              QTextEdit, QVBoxLayout, QPushButton, QMessageBox, 
-                             QHBoxLayout, QRadioButton, QDialog, QButtonGroup, QScrollArea,  QFileDialog)
+                             QHBoxLayout, QRadioButton, QDialog, QButtonGroup, QScrollArea,  QFileDialog, QCheckBox)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from vcolorpicker import getColor, useLightTheme
@@ -133,7 +133,8 @@ class MyWidget(QWidget):
             "trendPathBinary":"",
             "trendPathAnalog":"",
             "trendNameAnalog": [],
-            "trendNameBinary": []
+            "trendNameBinary": [],
+            "baseNode":"system.base.Folder"
         }
 
         self.result = {
@@ -175,6 +176,9 @@ class MyWidget(QWidget):
         self.server_path = QLabel("Server Path:")
         self.server_path_edit = QLineEdit("/Server 1")
 
+        self.modbus_check = QCheckBox("Is it Modbus ?")
+        self.modbus_check.setChecked(False)
+
         self.display_type_label = QLabel("Display Type:")
         self.display_type_combo = QComboBox()
         self.display_type_combo.addItems(["Line", "Discrete Line", "Digital", "Bars"])
@@ -202,12 +206,6 @@ class MyWidget(QWidget):
         self.select_display_type_button_binary.clicked.connect(lambda _ : self.show_display_type_popup_binary())
         
         layout = QVBoxLayout()
-        '''        
-        layout.addWidget(self.existing_file_label)
-        layout.addWidget(self.existing_file_button)
-        layout.addWidget(self.result_display)
-        layout.addWidget(self.process_existing_file)
-        '''
         layout.addLayout(self.existing_file_container) 
         
         layout.addWidget(self.name_label)
@@ -216,6 +214,7 @@ class MyWidget(QWidget):
         layout.addWidget(self.version_edit)
         layout.addWidget(self.server_path)
         layout.addWidget(self.server_path_edit)
+        layout.addWidget(self.modbus_check)
 
         self.label_box = QHBoxLayout()
         self.label_box.addWidget(self.trend_names_label_analog)
@@ -388,10 +387,13 @@ class MyWidget(QWidget):
                 {"name": trend_names[i].strip(), "displayType": 0, "displayColor":"-11179217"} for i in range(len(trend_names))
             ]
 
-
-    
     def format_xml(self) -> tuple[bool,str]:
         try:
+            if self.modbus_check and int(self.context["serverVersion"].split(".")[0]) < 6:
+                self.context["baseNode"] = "modbus.folder.DeviceFolder"
+            else:
+                self.context["baseNode"] = "system.base.Folder"
+
             env = jinja2.Environment(loader=jinja2.FileSystemLoader('./templates'))
             template = env.get_template('template.jinja2')
             output = template.render(self.context)
