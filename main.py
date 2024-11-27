@@ -187,12 +187,12 @@ class MyWidget(QWidget):
         self.hbox_layout.addWidget(self.trend_names_edit_binary)
 
         self.label_path_box = QHBoxLayout()
-        self.label_path_box.addWidget(self.trend_path_label_binary)
         self.label_path_box.addWidget(self.trend_path_label_analog)
+        self.label_path_box.addWidget(self.trend_path_label_binary)
         
         self.hbox_trend_path = QHBoxLayout()
-        self.hbox_trend_path.addWidget(self.trend_path_binary)
         self.hbox_trend_path.addWidget(self.trend_path_analog)
+        self.hbox_trend_path.addWidget(self.trend_path_binary)
 
         layout.addLayout(self.label_path_box)
         layout.addLayout(self.hbox_trend_path)
