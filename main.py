@@ -191,8 +191,8 @@ class MyWidget(QWidget):
         self.submit_button.clicked.connect(self.print_values)
 
         # Connect buttons to show popup
-        self.select_display_type_button_analog.clicked.connect(self.show_display_type_popup_analog)
-        self.select_display_type_button_binary.clicked.connect(self.show_display_type_popup_binary)
+        self.select_display_type_button_analog.clicked.connect(lambda _ : self.show_display_type_popup_analog())
+        self.select_display_type_button_binary.clicked.connect(lambda _ : self.show_display_type_popup_binary())
         
         layout = QVBoxLayout()
         
