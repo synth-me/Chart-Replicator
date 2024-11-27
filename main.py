@@ -4,7 +4,7 @@ import jinja2
 from datetime import datetime
 from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QComboBox, 
                              QTextEdit, QVBoxLayout, QPushButton, QMessageBox, 
-                             QHBoxLayout, QRadioButton, QDialog, QButtonGroup)
+                             QHBoxLayout, QRadioButton, QDialog, QButtonGroup, QScrollArea)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from vcolorpicker import getColor, useLightTheme
@@ -23,8 +23,14 @@ class DisplayTypePopup(QDialog):
         self.selected_display_types = {}
         self.selected_colors = {}
 
-        layout = QVBoxLayout()
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)  # Allow resizing
+        scroll_area.setFixedHeight(300)  # Adjust to your desired height
 
+        # Create a widget to hold the layout
+        content_widget = QWidget()
+        layout = QVBoxLayout(content_widget)
+        
         # Create radio button groups and color pickers for each trend name
         for i, trend_name in enumerate(trend_names):
             # Add trend name as a label
@@ -64,12 +70,26 @@ class DisplayTypePopup(QDialog):
             layout.addLayout(trend_layout)
             self.selected_display_types[i] = button_group
 
-        # OK button to confirm selections
+        # Set the content widget in the scroll area
+        scroll_area.setWidget(content_widget)
+
+        # Main layout for the dialog
+        main_layout = QVBoxLayout(self)
+
+        # Add the scroll area to the main layout
+        main_layout.addWidget(scroll_area)
+
+        # Create a layout for the OK button
+        button_layout = QHBoxLayout()
         ok_button = QPushButton("OK")
         ok_button.clicked.connect(self.accept)
-        layout.addWidget(ok_button)
+        button_layout.addStretch()  # Push the button to the right
+        button_layout.addWidget(ok_button)
 
-        self.setLayout(layout)
+        # Add the OK button layout to the main layout
+        main_layout.addLayout(button_layout)
+
+        self.setLayout(main_layout)
 
     def pick_color(self, index, button):
         """Open color picker and save selected color."""
@@ -122,7 +142,7 @@ class MyWidget(QWidget):
         self.name_edit = QLineEdit(datetime.now().strftime("%d-%m-%Y-%H-%M-%S"))
 
         self.version_label = QLabel("EBO Version:")
-        self.version_edit = QLineEdit("5.0.3.11")
+        self.version_edit = QLineEdit("5.0.3.117")
 
         self.display_type_label = QLabel("Display Type:")
         self.display_type_combo = QComboBox()
@@ -167,8 +187,8 @@ class MyWidget(QWidget):
         self.hbox_layout.addWidget(self.trend_names_edit_binary)
 
         self.label_path_box = QHBoxLayout()
-        self.label_path_box.addWidget(self.trend_path_label_analog)
         self.label_path_box.addWidget(self.trend_path_label_binary)
+        self.label_path_box.addWidget(self.trend_path_label_analog)
         
         self.hbox_trend_path = QHBoxLayout()
         self.hbox_trend_path.addWidget(self.trend_path_binary)
@@ -207,7 +227,7 @@ class MyWidget(QWidget):
         if popup.exec_() == QDialog.Accepted:
             selected_types, selected_colors = popup.get_selected_display_types()
             self.context["trendNameAnalog"] = [
-                {"name": trend_names[i], "displayType": selected_types[i], "displayColor":selected_colors[i]} for i in range(len(trend_names))
+                {"name": trend_names[i].strip(), "displayType": selected_types[i], "displayColor":selected_colors[i]} for i in range(len(trend_names))
             ]
 
     def show_display_type_popup_binary(self):
@@ -217,7 +237,7 @@ class MyWidget(QWidget):
         if popup.exec_() == QDialog.Accepted:
             selected_types, selected_colors = popup.get_selected_display_types()
             self.context["trendNameBinary"] = [
-                {"name": trend_names[i], "displayType": selected_types[i], "displayColor":selected_colors[i]} for i in range(len(trend_names))
+                {"name": trend_names[i].strip(), "displayType": selected_types[i], "displayColor":selected_colors[i]} for i in range(len(trend_names))
             ]
     
     def format_xml(self) -> tuple[bool,str]:
@@ -238,10 +258,10 @@ class MyWidget(QWidget):
             return False, f"ERROR: {str(e)}"
 
     def print_values(self):
-        self.context["serverVersion"] = self.version_edit.text()
-        self.context["trendPathBinary"] = self.trend_path_binary.text()
-        self.context["trendPathAnalog"] = self.trend_path_analog.text()
-        self.name = self.name_edit.text()
+        self.context["serverVersion"] = self.version_edit.text().strip()
+        self.context["trendPathBinary"] = self.trend_path_binary.text().strip()
+        self.context["trendPathAnalog"] = self.trend_path_analog.text().strip()
+        self.name = self.name_edit.text().strip()
 
         status, log = self.format_xml()
         QMessageBox.information(self, "Operation Finished", log)
