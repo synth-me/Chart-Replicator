@@ -1,5 +1,4 @@
 import sys
-import os
 import jinja2
 from datetime import datetime
 from PyQt5.QtWidgets import (QApplication, QWidget, QLabel, QLineEdit, QComboBox, 
@@ -15,7 +14,20 @@ import re
 useLightTheme(True)
 
 class DisplayTypePopup(QDialog):
-    def __init__(self, trend_names, display_type_options, parent=None):
+    """
+        This object diplays the popup that allows the selection of 
+        colors and display modes of each chart that belongs to a trend  
+    """
+    def __init__(self, trend_names: list[str], display_type_options: list[int], parent=None):
+        """
+            Initializes the dialog with the given trend names and display type options.
+
+            Args:
+                trend_names: A list of trend names.
+                display_type_options: A list of display type options.
+                parent: The parent widget, if any.
+
+        """
         super().__init__(parent)
 
         self.color_buttons = []
@@ -105,6 +117,11 @@ class DisplayTypePopup(QDialog):
         self.setLayout(main_layout)
 
     def replicate_button_clicked(self):
+        """
+            Replicates the display type and color of a selected trend to other trends.
+
+            This method gets the selected trend from the combo box, retrieves its display type and color, and then applies them to the other selected trends.
+        """
         selected_line_index = self.combo_box_lines.currentIndex()
 
         # Get the selected display type and color for the source line
@@ -121,15 +138,21 @@ class DisplayTypePopup(QDialog):
                     if button.text() == source_display_type:
                         button.setChecked(True)
                         break
-
+                
                 # Set the color
                 self.selected_colors[i] = source_color
                 # Access the color button directly using the stored reference
                 color_button = self.color_buttons[i]
                 color_button.setStyleSheet(f"background-color: {source_color};")
 
-    def pick_color(self, index, button):
-        """Open color picker and save selected color."""
+    def pick_color(self, index: int, button: Qt):
+        """
+            Opens a color picker to select a color for a specific trend.
+
+            Args:
+                index: The index of the trend in the list.
+                button: The color button associated with the trend.
+        """
         color = getColor((85,107,47))  # Open the color picker
         if color:
             if isinstance(color, tuple):  # If the color is a tuple, convert to hex
@@ -138,7 +161,14 @@ class DisplayTypePopup(QDialog):
             button.setStyleSheet(f"background-color: {color};")  # Update button background
 
     def get_selected_display_types(self):
-        """Retrieve selected display types and colors."""
+        """
+            Retrieves the selected display types and colors for all trends.
+
+            Returns:
+                A tuple containing two lists:
+                    - A list of selected display types.
+                    - A list of selected colors in ARGB format.
+        """
         display_types = []
         colors_in_argb = []
 
@@ -160,6 +190,25 @@ class DisplayTypePopup(QDialog):
 
 class MyWidget(QWidget):
     def __init__(self):
+        """
+            Initializes the `MyWidget` object.
+
+            This method sets up the user interface (UI) components, initializes variables, and
+            connects signal-slot mechanisms for the widget.
+
+            Key actions performed:
+
+            - Sets the window title and icon.
+            - Creates UI elements like labels, line edits, buttons, and text edits.
+            - Initializes the `context` and `result` dictionaries to store configuration and parsed data.
+            - Connects button clicks to appropriate methods, including:
+            - `search_files` to open a file dialog.
+            - `insert_information` to process the selected XML file.
+            - `show_display_type_popup_analog` and `show_display_type_popup_binary` to
+            open display type configuration dialogs.
+            - `print_values` to generate the final XML file.
+            - Sets up the main layout for the widget.
+        """
         super().__init__()
 
         self.context = {
@@ -296,7 +345,22 @@ class MyWidget(QWidget):
         self.setLayout(layout)
 
     def parse_xml_file(self) -> dict:
-    
+        """
+            Parses a selected XML file and extracts relevant information.
+
+            This method attempts to parse the XML file specified in the `result_display` line edit.
+            It extracts the following information from the XML:
+
+            - RuntimeVersion
+            - ServerFullPath (from MetaInformation)
+            - Trend group names and their reference paths (from 'Trend' OI)
+
+            The extracted information is stored in the `result` dictionary and returned.
+
+            Returns:
+                A dictionary containing the parsed information from the XML file,
+                or an empty dictionary if parsing fails or the file is not found.
+        """
         try:
             # Parse the XML file
             tree = ET.parse(self.result_display.text())
@@ -356,7 +420,14 @@ class MyWidget(QWidget):
             return {}
 
     def insert_information(self):        
+        """
+            Inserts parsed information from the XML file into the UI.
 
+            This method retrieves the parsed information from the `result` dictionary
+            and populates the corresponding UI elements (line edits, text edits) with the extracted values.
+
+            If the parsing fails or the file is not found, it displays an error message to the user.
+        """
         result = self.parse_xml_file()
 
         if self.result and result:
@@ -385,6 +456,12 @@ class MyWidget(QWidget):
         return None 
 
     def search_files(self):
+        """
+            Opens a file dialog to select an XML file.
+
+            This method allows the user to choose an XML file using a file dialog.
+            If a file is selected, it updates the `result_display` line edit with the file path.
+        """
         # Open a file dialog to select a directory
         files, _ = QFileDialog.getOpenFileNames(self, 'Select Files')
 
@@ -397,7 +474,17 @@ class MyWidget(QWidget):
         else:
             self.result_display.setText("No files selected.")
     
-    def show_display_type_popup_analog(self, mode= True):
+    def show_display_type_popup_analog(self, mode: bool= True):
+        """
+            Opens a popup to configure display types for analog trends.
+
+            This method opens a `DisplayTypePopup` dialog to allow the user to configure
+            the display type and color for each analog trend name retrieved from the `trend_names_edit_analog` text edit.
+
+            Args:
+                mode: A boolean flag indicating whether to show the popup for user interaction
+                (True) or to set default display types and colors (False).
+        """
         trend_names = self.trend_names_edit_analog.toPlainText().split("\n")
         trend_names = [name for name in trend_names if name]  # Filter empty lines
 
@@ -414,7 +501,18 @@ class MyWidget(QWidget):
                 {"name": trend_names[i].strip(), "displayType": 0, "displayColor":"-11179217"} for i in range(len(trend_names))
             ]
 
-    def show_display_type_popup_binary(self, mode= True):
+    def show_display_type_popup_binary(self, mode: bool= True):
+        """
+            Opens a popup to configure display types for binary trends.
+
+            This method functions similarly to `show_display_type_popup_analog`
+            but configures display types and colors for binary trends retrieved from
+            the `trend_names_edit_binary` text edit.
+
+            Args:
+                mode: A boolean flag indicating whether to show the popup for user interaction
+                (True) or to set default display types and colors (False).
+        """
         trend_names = self.trend_names_edit_binary.toPlainText().split("\n")
         trend_names = [name for name in trend_names if name]  # Filter empty lines
         
@@ -432,6 +530,23 @@ class MyWidget(QWidget):
             ]
 
     def format_xml(self) -> tuple[bool,str]:
+        """
+            Formats the data for the chart using a Jinja2 template.
+
+            This method uses the Jinja2 templating engine to format the data stored in the
+            `context` dictionary into an XML file. It sets the base node based on the Modbus checkbox selection
+            and server version.
+
+            If successful, it saves the formatted XML to a file named after the current date and time.
+
+            Args:
+                None
+
+            Returns:
+                A tuple containing a boolean indicating success and a message string.
+                The message string contains either the success message with the saved filename
+                or an error message.
+        """
         try:
             if self.modbus_check.isChecked() and int(self.context["serverVersion"].split(".")[0]) < 6:
                 print("modbus choosen")
@@ -455,7 +570,16 @@ class MyWidget(QWidget):
             return False, f"ERROR: {str(e)}"
 
     def print_values(self):
-        
+        """
+            Triggers actions before generating the final XML file.
+
+            This method performs several tasks before calling `format_xml` to generate the final XML:
+
+            1. Calls `show_display_type_popup_analog` and `show_display_type_popup_binary` with `mode=False`
+            to set default display types and colors if the user hasn't interacted with the popups.
+            2. Updates the `context` dictionary with information from various UI elements.
+            3. Calls `format_xml` to generate and save the XML file.
+        """
         self.show_display_type_popup_analog(False)
         self.show_display_type_popup_binary(False)
 
