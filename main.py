@@ -18,6 +18,7 @@ class DisplayTypePopup(QDialog):
     def __init__(self, trend_names, display_type_options, parent=None):
         super().__init__(parent)
 
+        self.color_buttons = []
         self.setWindowTitle("Select Display Type for Each Trend")
         self.setModal(True)
         self.trend_names = trend_names
@@ -27,12 +28,13 @@ class DisplayTypePopup(QDialog):
 
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)  # Allow resizing
-        scroll_area.setFixedHeight(300)  # Adjust to your desired height
+        scroll_area.setFixedHeight(500)  # Adjust to your desired height
+        scroll_area.setFixedWidth(500)  # Adjust to your desired height        
 
         # Create a widget to hold the layout
         content_widget = QWidget()
         layout = QVBoxLayout(content_widget)
-        
+
         # Create radio button groups and color pickers for each trend name
         for i, trend_name in enumerate(trend_names):
             # Add trend name as a label
@@ -53,7 +55,7 @@ class DisplayTypePopup(QDialog):
                 button_layout.addWidget(radio_button)
                 # Default selection for each line
                 if display_value == 0:
-                    radio_button.setChecked(True)
+                    radio_button.setChecked(True) 
 
             # Add radio buttons layout to trend layout
             trend_layout.addLayout(button_layout)
@@ -64,7 +66,7 @@ class DisplayTypePopup(QDialog):
             color_button.setIcon(QIcon("./static/brush.ico"))
             color_button.clicked.connect(lambda _, idx=i, btn=color_button: self.pick_color(idx, btn))
             trend_layout.addWidget(color_button)
-
+            self.color_buttons.append(color_button)
             # Store default color
             self.selected_colors[i] = "#FF556B2F"
 
@@ -78,8 +80,17 @@ class DisplayTypePopup(QDialog):
         # Main layout for the dialog
         main_layout = QVBoxLayout(self)
 
+        replicate_ = QHBoxLayout()
+        replicate_button = QPushButton("Replicate")
+        replicate_button.clicked.connect(self.replicate_button_clicked)
+        self.combo_box_lines = QComboBox()
+        self.combo_box_lines.addItems([str(i) for i, _ in enumerate(trend_names)])
+        replicate_.addWidget(self.combo_box_lines)
+        replicate_.addWidget(replicate_button)
+
         # Add the scroll area to the main layout
         main_layout.addWidget(scroll_area)
+        main_layout.addLayout(replicate_)
 
         # Create a layout for the OK button
         button_layout = QHBoxLayout()
@@ -92,6 +103,30 @@ class DisplayTypePopup(QDialog):
         main_layout.addLayout(button_layout)
 
         self.setLayout(main_layout)
+
+    def replicate_button_clicked(self):
+        selected_line_index = self.combo_box_lines.currentIndex()
+
+        # Get the selected display type and color for the source line
+        source_button_group = self.selected_display_types[selected_line_index]
+        source_button = source_button_group.checkedButton()
+        source_display_type = source_button.text()
+        source_color = self.selected_colors[selected_line_index]
+
+        # Iterate through other lines and replicate
+        for i, button_group in self.selected_display_types.items():
+            if i != selected_line_index:
+                # Set the display type
+                for button in button_group.buttons():
+                    if button.text() == source_display_type:
+                        button.setChecked(True)
+                        break
+
+                # Set the color
+                self.selected_colors[i] = source_color
+                # Access the color button directly using the stored reference
+                color_button = self.color_buttons[i]
+                color_button.setStyleSheet(f"background-color: {source_color};")
 
     def pick_color(self, index, button):
         """Open color picker and save selected color."""
@@ -136,7 +171,7 @@ class MyWidget(QWidget):
             "trendNameBinary": [],
             "baseNode":"system.base.Folder"
         }
-
+        
         self.result = {
             "RuntimeVersion": None,
             "ServerFullPath": None,
@@ -252,6 +287,8 @@ class MyWidget(QWidget):
         self.footnote_label.setOpenExternalLinks(True)
         self.footnote_label.setAlignment(Qt.AlignCenter)
 
+        self.selected_display = 0 
+
         layout.addLayout(self.button_layout)
         layout.addWidget(self.submit_button)
         layout.addWidget(self.footnote_label)
@@ -287,21 +324,24 @@ class MyWidget(QWidget):
                 trend_group = exported_objects.find(".//OI[@NAME='Trend']")
                 if trend_group is not None:
                     trend_groups = {"Binary Group":[], "Analog Group":[]}
-
+                    
                     # Extract sub-OIs under "Trend"
                     for sub_oi in trend_group.findall(".//OI"):
                         group_name = sub_oi.attrib.get('NAME')
+                        type_folder = sub_oi.attrib.get('TYPE')
                         if re.match(pattern,group_name):
                             for t_oi in sub_oi.findall(".//OI"):
                                 sub_oi_name = t_oi.attrib.get('NAME')
                                 reference_object = t_oi.find(".//Reference")
-
                                 parse_path = lambda s: s.replace("Data", "Trend").rsplit('/', 1)[0]
-
                                 if group_name == "Analog Group" and not analog_reference_found:
+                                    if type_folder == "modbus.folder.DeviceFolder":                                    
+                                        self.modbus_check.setChecked(True)
                                     analog_reference_found = reference_object.attrib.get('Object')     
                                     self.result["Path Analog"] = parse_path(analog_reference_found)                             
                                 elif group_name == "Binary Group" and not binary_reference_found:
+                                    if type_folder == "modbus.folder.DeviceFolder":
+                                        self.modbus_check.setChecked(True)
                                     binary_reference_found = reference_object.attrib.get('Object')
                                     self.result["Path Binary"] = parse_path(binary_reference_found)  
                                     
@@ -352,6 +392,8 @@ class MyWidget(QWidget):
             # Display the selected files
             self.result_display.clear()
             self.result_display.setText(files[0])
+            self.selected_display_analog = 0 
+            self.selected_display_binary = 0
         else:
             self.result_display.setText("No files selected.")
     
@@ -366,7 +408,8 @@ class MyWidget(QWidget):
                 self.context["trendNameAnalog"] = [
                     {"name": trend_names[i].strip(), "displayType": selected_types[i], "displayColor":selected_colors[i]} for i in range(len(trend_names))
                 ]
-        else:
+                self.selected_display_analog = 1 
+        elif self.selected_display_analog == 0:
             self.context["trendNameAnalog"] = [
                 {"name": trend_names[i].strip(), "displayType": 0, "displayColor":"-11179217"} for i in range(len(trend_names))
             ]
@@ -382,14 +425,16 @@ class MyWidget(QWidget):
                 self.context["trendNameBinary"] = [
                     {"name": trend_names[i].strip(), "displayType": selected_types[i], "displayColor":selected_colors[i]} for i in range(len(trend_names))
                 ]
-        else:
+                self.selected_display_binary = 1 
+        elif self.selected_display_binary == 0:
             self.context["trendNameBinary"] = [
                 {"name": trend_names[i].strip(), "displayType": 0, "displayColor":"-11179217"} for i in range(len(trend_names))
             ]
 
     def format_xml(self) -> tuple[bool,str]:
         try:
-            if self.modbus_check and int(self.context["serverVersion"].split(".")[0]) < 6:
+            if self.modbus_check.isChecked() and int(self.context["serverVersion"].split(".")[0]) < 6:
+                print("modbus choosen")
                 self.context["baseNode"] = "modbus.folder.DeviceFolder"
             else:
                 self.context["baseNode"] = "system.base.Folder"
