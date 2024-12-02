@@ -5,11 +5,11 @@
     <SemanticsFilter Value="None"/>
     <RuntimeVersion Value="{{ serverVersion }}"/>
     <SourceVersion Value="{{ serverVersion }}"/>
-    <ServerFullPath Value="/Server 1"/>
+    <ServerFullPath Value="{{ serverPath }}"/>
   </MetaInformation>
 <ExportedObjects>
-  <OI NAME="Chart" TYPE="system.base.Folder">
-    <OI NAME="Analog Group" TYPE="system.base.Folder">
+  <OI NAME="Chart" TYPE="{{ baseNode }}">
+    <OI NAME="Analog Group" TYPE="{{ baseNode }}">
      	{% for item in trendNameAnalog %}
     	<OI NAME="{{ item.name }}" TYPE="trend.view.GraphicalTrendView">
            <PI Name="DisplayStartTime" Value="Tx0626caa8183a8a18"/>
@@ -28,7 +28,7 @@
         </OI>
 	{% endfor %}
     </OI>
-    <OI NAME="Binary Group" TYPE="system.base.Folder">
+    <OI NAME="Binary Group" TYPE="{{ baseNode }}">
       {% for item in trendNameBinary %}
       <OI NAME="{{ item.name }}" TYPE="trend.view.GraphicalTrendView">
         <PI Name="DisplayStartTime" Value="Tx0626caa8183a8a18"/>
