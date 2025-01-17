@@ -482,7 +482,7 @@ class MyWidget(QWidget):
             the display type and color for each analog trend name retrieved from the `trend_names_edit_analog` text edit.
 
             Args:
-                mode: A boolean flag indicating whether to show the popup for user interaction
+                mode(bool): A boolean flag indicating whether to show the popup for user interaction
                 (True) or to set default display types and colors (False).
         """
         trend_names = self.trend_names_edit_analog.toPlainText().split("\n")
@@ -510,7 +510,7 @@ class MyWidget(QWidget):
             the `trend_names_edit_binary` text edit.
 
             Args:
-                mode: A boolean flag indicating whether to show the popup for user interaction
+                mode(bool): A boolean flag indicating whether to show the popup for user interaction
                 (True) or to set default display types and colors (False).
         """
         trend_names = self.trend_names_edit_binary.toPlainText().split("\n")
@@ -556,12 +556,12 @@ class MyWidget(QWidget):
 
             env = jinja2.Environment(loader=jinja2.FileSystemLoader('./templates'))
             template = env.get_template('template.jinja2')
-            output = template.render(self.context)
+            output = template.render(self.context)            
 
             if not self.name:
                 self.name = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
             
-            with open(f"./output/{self.name}.xml", "w") as file:
+            with open(f"./output/{self.name}.xml", "w", encoding="utf-8") as file:
                 file.write(output)
 
             return True, f"Saved as: {self.name}.xml"
